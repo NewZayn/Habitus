@@ -5,11 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:project/pages/register_page.dart';
 import 'firebase_options.dart';
 import 'pages/login_page.dart';
 import 'pages/main_page.dart';
 import 'pages/splash_page.dart';
-import 'pages/register_page.dart';
+import 'back4app/model_login/register.dart';
 
 FirebaseAnalytics? analytics;
 
