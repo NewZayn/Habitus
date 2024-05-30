@@ -1,40 +1,30 @@
 import 'dart:async';
-
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:project/pages/register_page.dart';
-import 'firebase_options.dart';
-import 'pages/login_page.dart';
-import 'pages/main_page.dart';
-import 'pages/splash_page.dart';
-import 'back4app/model_login/register.dart';
+import 'package:newapp/back4app/services/loginservice.dart';
+import 'package:newapp/templates/login.dart';
+import 'package:newapp/templates/home.dart';
+import 'package:newapp/templates/register.dart';
 
-FirebaseAnalytics? analytics;
+import 'back4app/services/registerservice.dart';
 
-FirebaseAnalyticsObserver? observer;
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  FirebaseApp app = await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  if (kIsWeb) {
-    await FirebaseAuth.instanceFor(app: app).setPersistence(Persistence.LOCAL);
-  }
-  analytics = FirebaseAnalytics.instanceFor(app: app);
-  runApp(MyApp());
+  RegisterService registerService = RegisterService();
+  await registerService.initialize();
+  runApp(const MyApp());
 }
 
 const mainColor = Color(0xFF4672ff);
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Simple Login App',
+      title: 'Habitus',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -42,7 +32,7 @@ class MyApp extends StatelessWidget {
           style: ButtonStyle(
             backgroundColor: MaterialStateProperty.all(mainColor),
             minimumSize: MaterialStateProperty.all(
-              Size.fromHeight(60),
+              const Size.fromHeight(60),
             ),
             shape: MaterialStateProperty.all(
               RoundedRectangleBorder(
@@ -52,15 +42,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      navigatorObservers: [
-        FirebaseAnalyticsObserver(analytics: analytics!),
-      ],
       initialRoute: '/',
       routes: {
-        '/': (context) => SplashPage(),
-        '/login': (context) => LoginPage(),
-        '/main': (context) => MainPage(),
-        '/register': (context) => RegisterPage(),
+        '/': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
+        '/home': (context) => const HomePage()
+        // Other routes can be defined here
       },
     );
   }
