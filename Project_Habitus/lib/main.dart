@@ -1,18 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:newapp/back4app/services/loginservice.dart';
 import 'package:newapp/templates/login.dart';
 import 'package:newapp/templates/home.dart';
 import 'package:newapp/templates/register.dart';
 
 import 'back4app/services/registerservice.dart';
 
-
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   RegisterService registerService = RegisterService();
   await registerService.initialize();
+
   runApp(const MyApp());
 }
 
@@ -47,7 +46,6 @@ class MyApp extends StatelessWidget {
         '/': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
         '/home': (context) => const HomePage()
-        // Other routes can be defined here
       },
     );
   }

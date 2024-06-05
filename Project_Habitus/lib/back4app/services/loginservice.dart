@@ -3,9 +3,8 @@ import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import 'package:newapp/back4app/application.properties.dart';
 
 class LoginService {
-
   Future<void> initializeParse() async {
-   ConfigurationValues configurationValues = new ConfigurationValues();
+    ConfigurationValues configurationValues = ConfigurationValues();
     await Parse().initialize(
       configurationValues.keyApplicationId,
       configurationValues.keyParseServerUrl,

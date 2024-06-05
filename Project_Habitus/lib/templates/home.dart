@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:newapp/back4app/services/habitservice.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
-import 'components/categorybutton.dart';
-import 'create_habit.dart';
+import '../back4app/services/habitservice.dart';
+import 'habits_page.dart';
+import 'calendario_page.dart';
+import 'habits_concluid_page.dart';
+import 'profile_page.dart';
 import 'login.dart';
-import 'profile_page.dart'; // Import the ProfilePage
-import 'editprofile.dart'; // Import the EditProfilePage
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
+
   @override
   HomeState createState() => HomeState();
 }
@@ -16,7 +17,8 @@ class HomePage extends StatefulWidget {
 class HomeState extends State<HomePage> {
   final HabitService habitService = HabitService();
   List<ParseObject> habits = [];
-  int _selectedIndex = 1;
+  int _selectedIndex = 0;
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -30,9 +32,13 @@ class HomeState extends State<HomePage> {
       final fetchedHabits = await habitService.getHabits();
       setState(() {
         habits = fetchedHabits;
+        isLoading = false;
       });
     } catch (e) {
-      print(e);
+      print('Error fetching habits: $e');
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -40,78 +46,6 @@ class HomeState extends State<HomePage> {
     setState(() {
       _selectedIndex = index;
     });
-  }
-
-  Widget _getSelectedPage() {
-    switch (_selectedIndex) {
-      case 0:
-        return const Center(child: Text('Estatísticas'));
-      case 1:
-        return Column(
-          children: [
-            Container(
-              color: Colors.blue,
-              padding: const EdgeInsets.symmetric(vertical: 10.0),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  CategoryButton("Alimentação"),
-                  CategoryButton("Exercícios"),
-                  CategoryButton("Estudo"),
-                  CategoryButton("Trabalho"),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Hoje',
-                      style: TextStyle(fontSize: 24.0),
-                    ),
-                    const Spacer(),
-                    habits.isEmpty
-                        ? const Text('Não há hábitos ainda')
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: habits.length,
-                            itemBuilder: (context, index) {
-                              final habit = habits[index];
-                              return ListTile(
-                                title: Text(
-                                    habit.get<String>('title') ?? 'No Title'),
-                              );
-                            },
-                          ),
-                    const Spacer(),
-                    FloatingActionButton.extended(
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (context) => const CreateHabitWidget(),
-                        ).whenComplete(() => fetchHabits());
-                      },
-                      label: const Text('Clique aqui para criar um hábito'),
-                      icon: const Icon(Icons.add),
-                    ),
-                    const Spacer(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      case 2:
-        return const Center(child: Text('Calendário'));
-      case 3:
-        return ProfilePage(); // Use the ProfilePage for the profile section
-      default:
-        return const Center(child: Text('Página não encontrada'));
-    }
   }
 
   Future<void> logout() async {
@@ -123,9 +57,25 @@ class HomeState extends State<HomePage> {
           MaterialPageRoute(builder: (context) => const LoginPage()),
         );
       } else {
-        // Handle logout error
         print('Logout failed: ${response.error?.message}');
       }
+    }
+  }
+
+  Widget _getSelectedPage() {
+    switch (_selectedIndex) {
+      case 0:
+        return HabitsPage(habits: habits, onAddHabit: fetchHabits);
+      case 1:
+        return CompletedHabitsPage(
+          completedHabits: habits.where((habit) => habit.get<bool>('isCompleted') ?? false).toList(),
+        );
+      case 2:
+        return const CalendarioPage();
+      case 3:
+        return ProfilePage();
+      default:
+        return HabitsPage(habits: habits, onAddHabit: fetchHabits);
     }
   }
 
@@ -137,15 +87,14 @@ class HomeState extends State<HomePage> {
         title: const Text('Home'),
         elevation: 0,
       ),
-      body: _getSelectedPage(),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _getSelectedPage(),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart), label: "Estatísticas"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.check_box), label: 'Hábitos'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: 'Calendário'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Habits"),
+          BottomNavigationBarItem(icon: Icon(Icons.check_box), label: 'Completed Habits'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendário'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
         currentIndex: _selectedIndex,
@@ -155,38 +104,49 @@ class HomeState extends State<HomePage> {
         showUnselectedLabels: false,
         onTap: _onItemTapped,
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
+      drawer: AppDrawer(onLogout: logout),
+    );
+  }
+}
+
+class AppDrawer extends StatelessWidget {
+  final Future<void> Function() onLogout;
+
+  const AppDrawer({required this.onLogout, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          const DrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.blue,
+            ),
+            child: Text(
+              'Menu',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
               ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                Navigator.popUntil(context, ModalRoute.withName('/home'));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.exit_to_app),
-              title: const Text('Logout'),
-              onTap: () async {
-                await logout();
-              },
-            ),
-          ],
-        ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () {
+              Navigator.popUntil(context, ModalRoute.withName('/home'));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.exit_to_app),
+            title: const Text('Logout'),
+            onTap: () async {
+              await onLogout();
+            },
+          ),
+        ],
       ),
     );
   }
